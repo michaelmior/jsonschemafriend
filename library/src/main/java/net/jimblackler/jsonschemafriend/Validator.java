@@ -83,21 +83,23 @@ public class Validator {
     return object;
   }
 
-  public void validate(
+  public Object validate(
       Schema schema, Object document, URI uri, Consumer<ValidationError> errorConsumer) {
-    validate(schema, document, uri, errorConsumer, property -> {}, item -> {}, new HashMap<>());
+    return validate(
+        schema, document, uri, errorConsumer, property -> {}, item -> {}, new HashMap<>());
   }
 
-  public void validate(
+  public Object validate(
       Schema schema,
       Object document,
       URI uri,
       Consumer<ValidationError> errorConsumer,
       Map<String, Schema> dynamicAnchors) {
-    validate(schema, document, uri, errorConsumer, property -> {}, item -> {}, dynamicAnchors);
+    return validate(
+        schema, document, uri, errorConsumer, property -> {}, item -> {}, dynamicAnchors);
   }
 
-  public void validate(
+  public Object validate(
       Schema schema,
       Object document,
       URI uri,
@@ -121,7 +123,7 @@ public class Validator {
 
     if (schema.isFalse()) {
       error.accept(new FalseSchemaError(uri, document, schema));
-      return;
+      return null;
     }
 
     Collection<String> evaluatedProperties = new HashSet<>();
@@ -753,6 +755,8 @@ public class Validator {
         error.accept(new EnumError(uri, document, schema));
       }
     }
+
+    return object;
   }
 
   private void typeCheck(
