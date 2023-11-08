@@ -68,29 +68,42 @@ public class TypeInferrer {
       }
     }
 
-    if (schema.getMaxLength() != null || schema.getMinLength() != null
-        || schema.getPattern() != null || schema.getFormat() != null
-        || schema.getContentEncoding() != null || schema.getContentMediaType() != null) {
+    if (schema.getMaxLength() != null
+        || schema.getMinLength() != null
+        || schema.getPattern() != null
+        || schema.getFormat() != null
+        || schema.getContentEncoding() != null
+        || schema.getContentMediaType() != null) {
       inferredTypes.add("string");
     }
 
-    if (schema.getMultipleOf() != null || schema.getMaximum() != null
-        || schema.getExclusiveMaximum() != null || schema.getMinimum() != null
-        || schema.getExclusiveMaximum() != null || schema.getDivisibleBy() != null) {
+    if (schema.getMultipleOf() != null
+        || schema.getMaximum() != null
+        || schema.getExclusiveMaximum() != null
+        || schema.getMinimum() != null
+        || schema.getExclusiveMaximum() != null
+        || schema.getDivisibleBy() != null) {
       inferredTypes.add("number");
     }
 
-    if (schema.getAdditionalItems() != null || schema.getItems() != null
-        || schema.getMaxItems() != null || schema.getMinItems() != null || schema.isUniqueItems()
+    if (schema.getAdditionalItems() != null
+        || schema.getItems() != null
+        || schema.getMaxItems() != null
+        || schema.getMinItems() != null
+        || schema.isUniqueItems()
         || schema.getContains() != null) {
       inferredTypes.add("array");
     }
 
-    if (schema.getMaxProperties() != null || schema.getMinProperties() != null
-        || !schema.getRequiredProperties().isEmpty() || schema.isRequired()
-        || schema.getAdditionalProperties() != null || !schema.getProperties().isEmpty()
+    if (schema.getMaxProperties() != null
+        || schema.getMinProperties() != null
+        || !schema.getRequiredProperties().isEmpty()
+        || schema.isRequired()
+        || schema.getAdditionalProperties() != null
+        || !schema.getProperties().isEmpty()
         || !schema.getPatternPropertiesPatterns().isEmpty()
-        || !schema.getDependentSchemas().isEmpty() || schema.getPropertyNames() != null) {
+        || !schema.getDependentSchemas().isEmpty()
+        || schema.getPropertyNames() != null) {
       inferredTypes.add("object");
     }
 

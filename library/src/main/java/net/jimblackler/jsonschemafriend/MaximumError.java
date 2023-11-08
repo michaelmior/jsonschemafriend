@@ -9,7 +9,8 @@ public class MaximumError extends ValidationError {
 
   @Override
   public String getMessage() {
-    return "Greater than maximum: " + getSchema().getMaximum()
+    return "Greater than maximum: "
+        + getSchema().getMaximum()
         + (getSchema().isExclusiveMaximumBoolean() ? " (exclusive)" : "");
   }
 }

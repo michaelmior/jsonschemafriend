@@ -15,7 +15,7 @@ public class StreamUtils {
    */
   public static String streamToString(InputStream inputStream) throws IOException {
     try (InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-         BufferedReader reader = new BufferedReader(inputStreamReader)) {
+        BufferedReader reader = new BufferedReader(inputStreamReader)) {
       String newline = System.lineSeparator();
       StringBuilder output = new StringBuilder();
       String line;

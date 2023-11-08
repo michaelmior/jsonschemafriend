@@ -467,8 +467,9 @@ public class Schema {
     examples = (List<Object>) jsonObject.get("examples");
   }
 
-  private Schema getChildSchema(SchemaStore schemaStore, Map<String, Object> jsonObject, URI uri,
-      String name) throws GenerationException {
+  private Schema getChildSchema(
+      SchemaStore schemaStore, Map<String, Object> jsonObject, URI uri, String name)
+      throws GenerationException {
     Object childObject = jsonObject.get(name);
     if (childObject instanceof Map || childObject instanceof Boolean) {
       return getChildSchema(schemaStore, append(uri, name));

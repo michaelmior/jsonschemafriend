@@ -259,8 +259,14 @@ public class SchemaStore {
     return map(document, document, uri, uri, detectMetaSchema(document), true, Keywords.SCHEMA);
   }
 
-  URI map(Object object, Object baseObject, URI validUri, URI canonicalBaseUri, URI metaSchema,
-      boolean isResource, int context) {
+  URI map(
+      Object object,
+      Object baseObject,
+      URI validUri,
+      URI canonicalBaseUri,
+      URI metaSchema,
+      boolean isResource,
+      int context) {
     URI canonicalUri = canonicalBaseUri;
     if ((context & Keywords.SCHEMA) != 0 && object instanceof Map) {
       Map<String, Object> jsonObject = (Map<String, Object>) object;
@@ -274,7 +280,8 @@ public class SchemaStore {
         URI child = URI.create((String) idObject);
         if (preDraft2019 && jsonObject.containsKey("$ref")) {
           LOG.warning("$id and $ref together are invalid");
-        } else if (!preDraft2019 && child.getRawFragment() != null
+        } else if (!preDraft2019
+            && child.getRawFragment() != null
             && !child.getRawFragment().isEmpty()) {
           LOG.warning("Illegal fragment in ID");
         } else {
@@ -298,7 +305,8 @@ public class SchemaStore {
           // This is for the situations where a $dynamicAnchor should behave like a normal $anchor.
           validUriToCanonicalUri.put(resolve(canonicalUri, dynamicAnchorUri), canonicalUri);
           URI schemaResource = UriUtils.withoutFragment(canonicalUri);
-          dynamicAnchorsBySchemaResource.computeIfAbsent(schemaResource, k -> new HashSet<>())
+          dynamicAnchorsBySchemaResource
+              .computeIfAbsent(schemaResource, k -> new HashSet<>())
               .add(dynamicAnchorUri.getFragment());
         } catch (URISyntaxException e) {
           LOG.warning("Problem with $dynamicAnchor: " + e.getMessage());
@@ -309,8 +317,13 @@ public class SchemaStore {
     if (((context & Keywords.SCHEMA) != 0 || (context & Keywords.MAP) != 0) && isResource) {
       URI was = canonicalUriToResourceUri.put(canonicalUri, validUri);
       if (was != null) {
-        LOG.warning("Attempt to map from at least two locations: " + canonicalUri
-            + System.lineSeparator() + validUri + System.lineSeparator() + was);
+        LOG.warning(
+            "Attempt to map from at least two locations: "
+                + canonicalUri
+                + System.lineSeparator()
+                + validUri
+                + System.lineSeparator()
+                + was);
         return canonicalUri;
       }
       if (canonicalUriToObject.put(canonicalUri, object) != null) {
@@ -327,15 +340,27 @@ public class SchemaStore {
       if (!canonicalBaseUri.equals(canonicalUri)) {
         URI was = validUriToCanonicalUri.put(canonicalBaseUri, canonicalUri);
         if (was != null && !was.equals(canonicalUri)) {
-          LOG.warning("Error mapping " + canonicalBaseUri + " to " + canonicalUri
-              + System.lineSeparator() + "Location was already mapped to " + was);
+          LOG.warning(
+              "Error mapping "
+                  + canonicalBaseUri
+                  + " to "
+                  + canonicalUri
+                  + System.lineSeparator()
+                  + "Location was already mapped to "
+                  + was);
         }
       }
       if (!validUri.equals(canonicalUri) && !canonicalBaseUri.equals(validUri)) {
         URI was = validUriToCanonicalUri.put(validUri, canonicalUri);
         if (was != null && !was.equals(canonicalUri)) {
-          LOG.warning("Error mapping " + validUri + " to " + canonicalUri + System.lineSeparator()
-              + "Location was already mapped to " + was);
+          LOG.warning(
+              "Error mapping "
+                  + validUri
+                  + " to "
+                  + canonicalUri
+                  + System.lineSeparator()
+                  + "Location was already mapped to "
+                  + was);
         }
       }
 
@@ -351,13 +376,25 @@ public class SchemaStore {
           if (mapContext == 0) {
             continue;
           }
-          map(entry.getValue(), baseObject, append(validUri, key), nextCanonical, metaSchema,
-              isResource, mapContext);
+          map(
+              entry.getValue(),
+              baseObject,
+              append(validUri, key),
+              nextCanonical,
+              metaSchema,
+              isResource,
+              mapContext);
           if (canonicalBaseUri.equals(canonicalUri) || canonicalBaseUri.equals(validUri)) {
             continue;
           }
-          map(entry.getValue(), baseObject, append(canonicalBaseUri, key), nextCanonical,
-              metaSchema, false, mapContext);
+          map(
+              entry.getValue(),
+              baseObject,
+              append(canonicalBaseUri, key),
+              nextCanonical,
+              metaSchema,
+              false,
+              mapContext);
         }
       }
     }
@@ -371,8 +408,14 @@ public class SchemaStore {
         if (validUriToCanonicalUri.containsKey(nextCanonical)) {
           continue;
         }
-        map(entry.getValue(), baseObject, append(validUri, key), nextCanonical, metaSchema,
-            isResource, (context & Keywords.MAP_OF_SCHEMAS) == 0 ? 0 : Keywords.SCHEMA);
+        map(
+            entry.getValue(),
+            baseObject,
+            append(validUri, key),
+            nextCanonical,
+            metaSchema,
+            isResource,
+            (context & Keywords.MAP_OF_SCHEMAS) == 0 ? 0 : Keywords.SCHEMA);
       }
     }
 
@@ -380,8 +423,13 @@ public class SchemaStore {
         && object instanceof List) {
       List<Object> jsonArray = (List<Object>) object;
       for (int idx = 0; idx != jsonArray.size(); idx++) {
-        map(jsonArray.get(idx), baseObject, append(validUri, String.valueOf(idx)),
-            append(canonicalUri, String.valueOf(idx)), metaSchema, isResource,
+        map(
+            jsonArray.get(idx),
+            baseObject,
+            append(validUri, String.valueOf(idx)),
+            append(canonicalUri, String.valueOf(idx)),
+            metaSchema,
+            isResource,
             (context & Keywords.LIST_OF_SCHEMAS) == 0 ? 0 : Keywords.SCHEMA);
       }
     }

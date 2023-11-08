@@ -45,7 +45,10 @@ public class Validator {
   }
 
   public Validator(boolean validateFormats) {
-    this(new CachedRegExPatternSupplier(JoniRegExPattern::new), validationError -> true, validateFormats);
+    this(
+        new CachedRegExPatternSupplier(JoniRegExPattern::new),
+        validationError -> true,
+        validateFormats);
   }
 
   public Validator(Predicate<? super ValidationError> errorFilter) {
@@ -54,11 +57,13 @@ public class Validator {
 
   public Validator(
       RegExPatternSupplier regExPatternSupplier, Predicate<? super ValidationError> errorFilter) {
-   this(regExPatternSupplier, errorFilter, false);
+    this(regExPatternSupplier, errorFilter, false);
   }
 
   public Validator(
-      RegExPatternSupplier regExPatternSupplier, Predicate<? super ValidationError> errorFilter, boolean validateFormats) {
+      RegExPatternSupplier regExPatternSupplier,
+      Predicate<? super ValidationError> errorFilter,
+      boolean validateFormats) {
     this.regExPatternSupplier = regExPatternSupplier;
     this.errorFilter = errorFilter;
     this.validateFormats = validateFormats;
@@ -83,14 +88,23 @@ public class Validator {
     validate(schema, document, uri, errorConsumer, property -> {}, item -> {}, new HashMap<>());
   }
 
-  public void validate(Schema schema, Object document, URI uri,
-      Consumer<ValidationError> errorConsumer, Map<String, Schema> dynamicAnchors) {
+  public void validate(
+      Schema schema,
+      Object document,
+      URI uri,
+      Consumer<ValidationError> errorConsumer,
+      Map<String, Schema> dynamicAnchors) {
     validate(schema, document, uri, errorConsumer, property -> {}, item -> {}, dynamicAnchors);
   }
 
-  public void validate(Schema schema, Object document, URI uri,
-      Consumer<ValidationError> errorConsumer, Consumer<String> propertyConsumer,
-      Consumer<Integer> itemConsumer, Map<String, Schema> dynamicAnchorsIn) {
+  public void validate(
+      Schema schema,
+      Object document,
+      URI uri,
+      Consumer<ValidationError> errorConsumer,
+      Consumer<String> propertyConsumer,
+      Consumer<Integer> itemConsumer,
+      Map<String, Schema> dynamicAnchorsIn) {
     Object object;
     try {
       object = getObject(document, uri);
@@ -98,11 +112,12 @@ public class Validator {
       throw new IllegalStateException(e);
     }
 
-    Consumer<ValidationError> error = validationError -> {
-      if (errorFilter.test(validationError)) {
-        errorConsumer.accept(validationError);
-      }
-    };
+    Consumer<ValidationError> error =
+        validationError -> {
+          if (errorFilter.test(validationError)) {
+            errorConsumer.accept(validationError);
+          }
+        };
 
     if (schema.isFalse()) {
       error.accept(new FalseSchemaError(uri, document, schema));
@@ -110,16 +125,18 @@ public class Validator {
     }
 
     Collection<String> evaluatedProperties = new HashSet<>();
-    Consumer<String> selfPropertyHandler = property -> {
-      propertyConsumer.accept(property);
-      evaluatedProperties.add(property);
-    };
+    Consumer<String> selfPropertyHandler =
+        property -> {
+          propertyConsumer.accept(property);
+          evaluatedProperties.add(property);
+        };
 
     Collection<Integer> evaluatedItems = new HashSet<>();
-    Consumer<Integer> selfItemHandler = property -> {
-      itemConsumer.accept(property);
-      evaluatedItems.add(property);
-    };
+    Consumer<Integer> selfItemHandler =
+        property -> {
+          itemConsumer.accept(property);
+          evaluatedItems.add(property);
+        };
 
     Map<String, Schema> dynamicAnchors = new HashMap<>(dynamicAnchorsIn);
     for (Map.Entry<String, Schema> entry : schema.getDynamicAnchorsInResource().entrySet()) {
@@ -147,7 +164,13 @@ public class Validator {
       List<ValidationError> errors = new ArrayList<>();
       Collection<String> unevaluatedProperties = new HashSet<>();
       Collection<Integer> unevaluatedItems = new HashSet<>();
-      validate(_if, document, uri, errors::add, unevaluatedProperties::add, unevaluatedItems::add,
+      validate(
+          _if,
+          document,
+          uri,
+          errors::add,
+          unevaluatedProperties::add,
+          unevaluatedItems::add,
           dynamicAnchors);
       Schema useSchema;
       if (errors.isEmpty()) {
@@ -158,7 +181,13 @@ public class Validator {
         useSchema = _else;
       }
       if (useSchema != null) {
-        validate(useSchema, document, uri, errorConsumer, selfPropertyHandler, selfItemHandler,
+        validate(
+            useSchema,
+            document,
+            uri,
+            errorConsumer,
+            selfPropertyHandler,
+            selfItemHandler,
             dynamicAnchors);
       }
     }
@@ -171,8 +200,14 @@ public class Validator {
 
     Schema recursiveRef1 = schema.getRecursiveRef();
     if (recursiveRef1 != null) {
-      validate(recursiveRef1.isRecursiveAnchor() ? dynamicAnchors.get(null) : recursiveRef1,
-          document, uri, errorConsumer, selfPropertyHandler, selfItemHandler, dynamicAnchors);
+      validate(
+          recursiveRef1.isRecursiveAnchor() ? dynamicAnchors.get(null) : recursiveRef1,
+          document,
+          uri,
+          errorConsumer,
+          selfPropertyHandler,
+          selfItemHandler,
+          dynamicAnchors);
     }
 
     URI dynamicRefURI = schema.getDynamicRefURI();
@@ -180,9 +215,10 @@ public class Validator {
       String anchor = dynamicRefURI.getFragment();
       // "A $dynamicRef without a matching $dynamicAnchor in the same schema resource should behave
       // like a normal $ref to $anchor."
-      Schema toValidate = schema.getDynamicAnchorsInResource().containsKey(anchor)
-          ? dynamicAnchors.get(anchor)
-          : schema.getDefaultDynamicRef();
+      Schema toValidate =
+          schema.getDynamicAnchorsInResource().containsKey(anchor)
+              ? dynamicAnchors.get(anchor)
+              : schema.getDefaultDynamicRef();
       // "A $dynamicRef that initially resolves to a schema with a matching $dynamicAnchor should
       // resolve to the first $dynamicAnchor in the dynamic scope."
       if (anchor.equals(toValidate.getDynamicAnchor())) {
@@ -191,14 +227,26 @@ public class Validator {
       if (toValidate == null) {
         LOG.warning("Could not resolve dynamic anchor: " + anchor);
       } else {
-        validate(toValidate, document, uri, errorConsumer, selfPropertyHandler, selfItemHandler,
+        validate(
+            toValidate,
+            document,
+            uri,
+            errorConsumer,
+            selfPropertyHandler,
+            selfItemHandler,
             dynamicAnchors);
       }
     }
 
     Collection<Schema> allOf = schema.getAllOf();
     for (Schema schema1 : allOf) {
-      validate(schema1, document, uri, errorConsumer, selfPropertyHandler, selfItemHandler,
+      validate(
+          schema1,
+          document,
+          uri,
+          errorConsumer,
+          selfPropertyHandler,
+          selfItemHandler,
           dynamicAnchors);
     }
 
@@ -210,8 +258,14 @@ public class Validator {
         List<ValidationError> errors = new ArrayList<>();
         Collection<String> unevaluatedProperties = new HashSet<>();
         Collection<Integer> unevaluatedItems = new HashSet<>();
-        validate(schema1, document, uri, errors::add, unevaluatedProperties::add,
-            unevaluatedItems::add, dynamicAnchors);
+        validate(
+            schema1,
+            document,
+            uri,
+            errors::add,
+            unevaluatedProperties::add,
+            unevaluatedItems::add,
+            dynamicAnchors);
         if (errors.isEmpty()) {
           numberPassed++;
           unevaluatedProperties.forEach(selfPropertyHandler);
@@ -232,8 +286,14 @@ public class Validator {
         List<ValidationError> errors = new ArrayList<>();
         List<String> unevaluatedProperties = new ArrayList<>();
         List<Integer> unevaluatedItems = new ArrayList<>();
-        validate(schema1, document, uri, errors::add, unevaluatedProperties::add,
-            unevaluatedItems::add, dynamicAnchors);
+        validate(
+            schema1,
+            document,
+            uri,
+            errors::add,
+            unevaluatedProperties::add,
+            unevaluatedItems::add,
+            dynamicAnchors);
         if (errors.isEmpty()) {
           passed.add(schema1);
           unevaluatedProperties.forEach(selfPropertyHandler);
@@ -258,7 +318,13 @@ public class Validator {
     Collection<Schema> disallowSchemas = schema.getDisallowSchemas();
     for (Schema disallowSchema : disallowSchemas) {
       List<ValidationError> errors = new ArrayList<>();
-      validate(disallowSchema, document, uri, errors::add, selfPropertyHandler, selfItemHandler,
+      validate(
+          disallowSchema,
+          document,
+          uri,
+          errors::add,
+          selfPropertyHandler,
+          selfItemHandler,
           dynamicAnchors);
       if (errors.isEmpty()) {
         error.accept(new DisallowError(uri, document, schema));
@@ -284,8 +350,9 @@ public class Validator {
         error.accept(new MultipleError(uri, document, schema));
       }
       if (maximum != null
-          && (exclusiveMaximumBoolean ? number.doubleValue() >= maximum.doubleValue()
-                                      : number.doubleValue() > maximum.doubleValue())) {
+          && (exclusiveMaximumBoolean
+              ? number.doubleValue() >= maximum.doubleValue()
+              : number.doubleValue() > maximum.doubleValue())) {
         error.accept(new MaximumError(uri, document, schema));
       }
 
@@ -293,8 +360,9 @@ public class Validator {
         error.accept(new ExclusiveMaximumError(uri, document, schema));
       }
       if (minimum != null) {
-        if (exclusiveMinimumBoolean ? number.doubleValue() <= minimum.doubleValue()
-                                    : number.doubleValue() < minimum.doubleValue()) {
+        if (exclusiveMinimumBoolean
+            ? number.doubleValue() <= minimum.doubleValue()
+            : number.doubleValue() < minimum.doubleValue()) {
           error.accept(new MinimumError(uri, document, schema));
         }
       }
@@ -352,7 +420,8 @@ public class Validator {
       String format = schema.getFormat();
       if (format != null) {
         String message =
-            FormatChecker.formatCheck(string, format, schema.getMetaSchema(), regExPatternSupplier, this.validateFormats);
+            FormatChecker.formatCheck(
+                string, format, schema.getMetaSchema(), regExPatternSupplier, this.validateFormats);
         if (message != null) {
           error.accept(new FormatError(uri, document, schema, message));
         }
@@ -362,8 +431,10 @@ public class Validator {
 
       boolean preDraft5 =
           DRAFT_3.equals(schema.getMetaSchema()) || DRAFT_4.equals(schema.getMetaSchema());
-      boolean preDraft2019 = preDraft5 || DRAFT_6.equals(schema.getMetaSchema())
-          || DRAFT_7.equals(schema.getMetaSchema());
+      boolean preDraft2019 =
+          preDraft5
+              || DRAFT_6.equals(schema.getMetaSchema())
+              || DRAFT_7.equals(schema.getMetaSchema());
       if (preDraft2019) {
         if ("base64".equals(contentEncoding)) {
           Base64.Decoder urlDecoder = getUrlDecoder();
@@ -399,8 +470,12 @@ public class Validator {
       if (prefixItems != null) {
         itemStart = prefixItems.size();
         for (int idx = 0; idx != Math.min(prefixItems.size(), jsonArray.size()); idx++) {
-          validate(prefixItems.get(idx), document, PathUtils.append(uri, String.valueOf(idx)),
-              errorConsumer, dynamicAnchors);
+          validate(
+              prefixItems.get(idx),
+              document,
+              PathUtils.append(uri, String.valueOf(idx)),
+              errorConsumer,
+              dynamicAnchors);
           selfItemHandler.accept(idx);
         }
       } else {
@@ -409,14 +484,22 @@ public class Validator {
           Schema additionalItems = schema.getAdditionalItems();
           if (jsonArray.size() > itemsTuple.size() && additionalItems != null) {
             for (int idx = itemsTuple.size(); idx != jsonArray.size(); idx++) {
-              validate(additionalItems, document, PathUtils.append(uri, String.valueOf(idx)),
-                  errorConsumer, dynamicAnchors);
+              validate(
+                  additionalItems,
+                  document,
+                  PathUtils.append(uri, String.valueOf(idx)),
+                  errorConsumer,
+                  dynamicAnchors);
               selfItemHandler.accept(idx);
             }
           }
           for (int idx = 0; idx != Math.min(itemsTuple.size(), jsonArray.size()); idx++) {
-            validate(itemsTuple.get(idx), document, PathUtils.append(uri, String.valueOf(idx)),
-                errorConsumer, dynamicAnchors);
+            validate(
+                itemsTuple.get(idx),
+                document,
+                PathUtils.append(uri, String.valueOf(idx)),
+                errorConsumer,
+                dynamicAnchors);
             selfItemHandler.accept(idx);
           }
         }
@@ -425,7 +508,11 @@ public class Validator {
       Schema _items = schema.getItems();
       if (_items != null) {
         for (int idx = itemStart; idx < jsonArray.size(); idx++) {
-          validate(_items, document, PathUtils.append(uri, String.valueOf(idx)), errorConsumer,
+          validate(
+              _items,
+              document,
+              PathUtils.append(uri, String.valueOf(idx)),
+              errorConsumer,
               dynamicAnchors);
           selfItemHandler.accept(idx);
         }
@@ -435,7 +522,11 @@ public class Validator {
         int numberPassed = 0;
         for (int idx = 0; idx != jsonArray.size(); idx++) {
           List<ValidationError> errors = new ArrayList<>();
-          validate(contains, document, PathUtils.append(uri, String.valueOf(idx)), errors::add,
+          validate(
+              contains,
+              document,
+              PathUtils.append(uri, String.valueOf(idx)),
+              errors::add,
               dynamicAnchors);
           if (errors.isEmpty()) {
             selfItemHandler.accept(idx);
@@ -458,8 +549,12 @@ public class Validator {
           if (evaluatedItems.contains(idx)) {
             continue;
           }
-          validate(unevaluatedItems, document, PathUtils.append(uri, String.valueOf(idx)),
-              errorConsumer, dynamicAnchors);
+          validate(
+              unevaluatedItems,
+              document,
+              PathUtils.append(uri, String.valueOf(idx)),
+              errorConsumer,
+              dynamicAnchors);
           selfItemHandler.accept(idx);
         }
       }
@@ -518,8 +613,12 @@ public class Validator {
       Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
       for (String property : jsonObject.keySet()) {
         if (_properties.containsKey(property)) {
-          validate(_properties.get(property), document, PathUtils.append(uri, property),
-              errorConsumer, dynamicAnchors);
+          validate(
+              _properties.get(property),
+              document,
+              PathUtils.append(uri, property),
+              errorConsumer,
+              dynamicAnchors);
           remainingProperties.remove(property);
           selfPropertyHandler.accept(property);
         }
@@ -531,7 +630,11 @@ public class Validator {
           Schema schema1 = it1.next();
           try {
             if (regExPatternSupplier.newPattern(pattern1).matches(property)) {
-              validate(schema1, document, PathUtils.append(uri, property), errorConsumer,
+              validate(
+                  schema1,
+                  document,
+                  PathUtils.append(uri, property),
+                  errorConsumer,
                   dynamicAnchors);
               remainingProperties.remove(property);
               selfPropertyHandler.accept(property);
@@ -551,8 +654,13 @@ public class Validator {
             // Pointers. Relative JSON Pointers does support property names; but the standard states
             // these pointers are not suitable for use in URIs. As a workaround we use the query
             // part of the URL to carry the property name into the child iteration of the validator.
-            URI propertyPath = new URI(
-                uri.getScheme(), uri.getAuthority(), uri.getPath(), property, uri.getRawFragment());
+            URI propertyPath =
+                new URI(
+                    uri.getScheme(),
+                    uri.getAuthority(),
+                    uri.getPath(),
+                    property,
+                    uri.getRawFragment());
             validate(propertyNames, document, propertyPath, errorConsumer, dynamicAnchors);
           } catch (URISyntaxException e) {
             throw new IllegalStateException(e);
@@ -565,14 +673,24 @@ public class Validator {
         if (!jsonObject.containsKey(property)) {
           continue;
         }
-        validate(entry.getValue(), document, uri, errorConsumer, selfPropertyHandler,
-            selfItemHandler, dynamicAnchors);
+        validate(
+            entry.getValue(),
+            document,
+            uri,
+            errorConsumer,
+            selfPropertyHandler,
+            selfItemHandler,
+            dynamicAnchors);
       }
 
       Schema additionalProperties = schema.getAdditionalProperties();
       if (additionalProperties != null) {
         for (String property : remainingProperties) {
-          validate(additionalProperties, document, PathUtils.append(uri, property), errorConsumer,
+          validate(
+              additionalProperties,
+              document,
+              PathUtils.append(uri, property),
+              errorConsumer,
               dynamicAnchors);
           selfPropertyHandler.accept(property);
         }
@@ -583,7 +701,11 @@ public class Validator {
         Collection<String> remainingProperties2 = new HashSet<>(jsonObject.keySet());
         remainingProperties2.removeAll(evaluatedProperties);
         for (String property : remainingProperties2) {
-          validate(unevaluatedProperties, document, PathUtils.append(uri, property), errorConsumer,
+          validate(
+              unevaluatedProperties,
+              document,
+              PathUtils.append(uri, property),
+              errorConsumer,
               dynamicAnchors);
           selfPropertyHandler.accept(property);
         }
@@ -633,8 +755,13 @@ public class Validator {
     }
   }
 
-  private void typeCheck(Schema schema, Object document, URI path, Set<String> types,
-      Collection<String> disallow, Consumer<? super ValidationError> errorConsumer) {
+  private void typeCheck(
+      Schema schema,
+      Object document,
+      URI path,
+      Set<String> types,
+      Collection<String> disallow,
+      Consumer<? super ValidationError> errorConsumer) {
     if (!disallow.isEmpty()) {
       Collection<String> typesIn0 = new HashSet<>(types);
       typesIn0.retainAll(disallow);
@@ -731,7 +858,10 @@ public class Validator {
 
   public void validate(Schema schema, URL url, Consumer<ValidationError> errorConsumer)
       throws IOException {
-    validate(schema, new ObjectMapper().readValue(UrlUtils.readFromStream(url), Object.class), errorConsumer);
+    validate(
+        schema,
+        new ObjectMapper().readValue(UrlUtils.readFromStream(url), Object.class),
+        errorConsumer);
   }
 
   public void validate(Schema schema, URI uri, Consumer<ValidationError> errorConsumer)
@@ -755,21 +885,24 @@ public class Validator {
     output.put("keywordLocation", schema.getUri().toString());
     output.put("absoluteKeywordLocation", schema.getResourceUri().toString());
     output.put("instanceLocation", "");
-    validate(schema, document, validationError -> {
-      output.put("valid", false);
-      Map<String, Object> error = new LinkedHashMap<>();
-      error.put("valid", false);
-      error.put("error", validationError.getMessage());
-      Schema failedSubSchema = validationError.getSchema();
-      error.put("keywordLocation", failedSubSchema.getUri().toString());
-      error.put("absoluteKeywordLocation", failedSubSchema.getResourceUri().toString());
-      String rawFragment = validationError.getUri().getRawFragment();
-      error.put("instanceLocation", "#" + (rawFragment == null ? "" : rawFragment));
-      if (!output.containsKey("errors")) {
-        output.put("errors", new ArrayList<>());
-      }
-      ((Collection<Object>) output.get("errors")).add(error);
-    });
+    validate(
+        schema,
+        document,
+        validationError -> {
+          output.put("valid", false);
+          Map<String, Object> error = new LinkedHashMap<>();
+          error.put("valid", false);
+          error.put("error", validationError.getMessage());
+          Schema failedSubSchema = validationError.getSchema();
+          error.put("keywordLocation", failedSubSchema.getUri().toString());
+          error.put("absoluteKeywordLocation", failedSubSchema.getResourceUri().toString());
+          String rawFragment = validationError.getUri().getRawFragment();
+          error.put("instanceLocation", "#" + (rawFragment == null ? "" : rawFragment));
+          if (!output.containsKey("errors")) {
+            output.put("errors", new ArrayList<>());
+          }
+          ((Collection<Object>) output.get("errors")).add(error);
+        });
     return output;
   }
 }

@@ -39,10 +39,13 @@ public class PathUtilsTest {
     Collection<DynamicTest> allFileTests = new ArrayList<>();
     for (int idx = 0; idx != numberTests; idx++) {
       int seed = idx;
-      allFileTests.add(dynamicTest("Seed " + seed, () -> {
-        Random random = new Random(seed);
-        test0(randomString(random, length, minRange, maxRange));
-      }));
+      allFileTests.add(
+          dynamicTest(
+              "Seed " + seed,
+              () -> {
+                Random random = new Random(seed);
+                test0(randomString(random, length, minRange, maxRange));
+              }));
     }
 
     return allFileTests;

@@ -18,11 +18,11 @@ public class Keywords {
    * during the mapping of the Schema JSON before building the Schema object, as only subschemas
    * under known keys can contain $id values used for referencing.
    *
-   * The metaschema cannot be used to identify the known keys prior to mapping for a number of
+   * <p>The metaschema cannot be used to identify the known keys prior to mapping for a number of
    * reasons, including the fact that the metaschema would itself need to be mapped, creating a
    * circular dependency.
    *
-   * A side benefit is that the user can be warned of unknown keywords in the schema.
+   * <p>A side benefit is that the user can be warned of unknown keywords in the schema.
    *
    * @return A map of known keywords and the expected types of associated data.
    */

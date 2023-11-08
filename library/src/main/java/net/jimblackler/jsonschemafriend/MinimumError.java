@@ -9,7 +9,8 @@ public class MinimumError extends ValidationError {
 
   @Override
   public String getMessage() {
-    return "Less than minimum: " + getSchema().getMinimum()
+    return "Less than minimum: "
+        + getSchema().getMinimum()
         + (getSchema().isExclusiveMinimumBoolean() ? " (exclusive)" : "");
   }
 }

@@ -31,13 +31,15 @@ public class MetaSchemaDetector {
 
     int[] idCount = {0};
     int[] dollarIdCount = {0};
-    allKeys(document, key -> {
-      if ("id".equals(key)) {
-        idCount[0]++;
-      } else if ("$id".equals(key)) {
-        dollarIdCount[0]++;
-      }
-    });
+    allKeys(
+        document,
+        key -> {
+          if ("id".equals(key)) {
+            idCount[0]++;
+          } else if ("$id".equals(key)) {
+            dollarIdCount[0]++;
+          }
+        });
 
     if (dollarIdCount[0] > idCount[0]) {
       return MetaSchemaUris.DRAFT_7;

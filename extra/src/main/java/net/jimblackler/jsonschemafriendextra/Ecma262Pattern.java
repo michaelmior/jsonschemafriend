@@ -7,16 +7,19 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
 public class Ecma262Pattern implements RegExPattern {
-  private static final Value REGEX_BUILDER = Context.create("js").eval("js",
-      "pattern => {"
-          + "  let regex;"
-          + "  try {"
-          + "    regex = new RegExp(pattern, 'u');"
-          + "  } catch (e) {"
-          + "    regex = new RegExp(pattern);"
-          + "  }"
-          + "  return text => text.match(regex)"
-          + "};");
+  private static final Value REGEX_BUILDER =
+      Context.create("js")
+          .eval(
+              "js",
+              "pattern => {"
+                  + "  let regex;"
+                  + "  try {"
+                  + "    regex = new RegExp(pattern, 'u');"
+                  + "  } catch (e) {"
+                  + "    regex = new RegExp(pattern);"
+                  + "  }"
+                  + "  return text => text.match(regex)"
+                  + "};");
   private final String pattern;
   private final Value function;
 

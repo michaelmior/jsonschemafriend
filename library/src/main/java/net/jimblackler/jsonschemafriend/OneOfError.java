@@ -9,8 +9,12 @@ public class OneOfError extends ValidationError {
   private final List<List<ValidationError>> allErrors;
   private final List<Schema> passed;
 
-  public OneOfError(URI uri, Object document, List<Schema> passed,
-      List<List<ValidationError>> allErrors, Schema schema) {
+  public OneOfError(
+      URI uri,
+      Object document,
+      List<Schema> passed,
+      List<List<ValidationError>> allErrors,
+      Schema schema) {
     super(uri, document, schema);
     this.passed = Collections.unmodifiableList(passed);
     this.allErrors = Collections.unmodifiableList(allErrors);
@@ -32,7 +36,7 @@ public class OneOfError extends ValidationError {
 
     return "More than one oneOf passed: "
         + passed.stream()
-              .map(schema -> schema.getUri().toString())
-              .collect(Collectors.joining(", "));
+            .map(schema -> schema.getUri().toString())
+            .collect(Collectors.joining(", "));
   }
 }

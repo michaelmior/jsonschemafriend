@@ -1,10 +1,10 @@
 package net.jimblackler.jsonschemafriend;
 
+import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-
-import static net.jimblackler.jsonschemafriend.StreamUtils.streamToString;
 
 public class UrlUtils {
   static String readFromStream(URL url) throws IOException {

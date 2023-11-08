@@ -29,7 +29,7 @@ public class ReaderUtils {
   static File streamToTempFile(InputStream stream) throws IOException {
     File tempFile = File.createTempFile("jsf", ".txt");
     tempFile.deleteOnExit();
-    try (OutputStream outStream = new FileOutputStream(tempFile);) {
+    try (OutputStream outStream = new FileOutputStream(tempFile); ) {
       byte[] buffer = new byte[1024];
       int bytesRead;
       while ((bytesRead = stream.read(buffer)) != -1) {

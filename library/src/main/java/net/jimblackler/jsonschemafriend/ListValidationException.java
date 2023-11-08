@@ -7,10 +7,11 @@ public class ListValidationException extends ValidationException {
   private final Collection<ValidationError> errors;
 
   public ListValidationException(Collection<ValidationError> errors) {
-    super("Validation errors: "
-        + errors.stream()
-              .map(Object::toString)
-              .collect(Collectors.joining(System.lineSeparator())));
+    super(
+        "Validation errors: "
+            + errors.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(System.lineSeparator())));
     this.errors = errors;
   }
 

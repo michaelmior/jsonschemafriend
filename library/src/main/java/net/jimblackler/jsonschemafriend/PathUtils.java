@@ -204,7 +204,7 @@ public class PathUtils {
   /**
    * Generate a resolved URI from a base and child URI.
    *
-   * This is a replacement for java.net.URI.resolve that can handle 'non-authority' schemes like
+   * <p>This is a replacement for java.net.URI.resolve that can handle 'non-authority' schemes like
    * urn: or jar:
    *
    * @param base The base URI.
@@ -235,8 +235,9 @@ public class PathUtils {
         return child;
       }
     }
-    return URI.create(baseWithoutFragment.substring(0, i2 + 1)
-        + (childString.charAt(0) == '/' ? childString.substring(1) : childString));
+    return URI.create(
+        baseWithoutFragment.substring(0, i2 + 1)
+            + (childString.charAt(0) == '/' ? childString.substring(1) : childString));
   }
 
   /**
@@ -286,9 +287,9 @@ public class PathUtils {
    * Convert a URI to its standard form, for the purposes of looking up URIs in internal
    * dictionaries. Where there are multiple valid ways to express the same URI we have to chose one
    * as the canonical form if URIs are to be used as keys in storage structures.
-   * <p>
-   * For example; http://example.com, http://example.com# and http://example.com#/ are all valid but
-   * equivalent pointers.
+   *
+   * <p>For example; http://example.com, http://example.com# and http://example.com#/ are all valid
+   * but equivalent pointers.
    *
    * @param uri The URL to normalize.
    * @return The normalized form of the URI.

@@ -30,9 +30,13 @@ public abstract class ValidationError {
     URI schemaPath = schema.getUri();
     try {
       String str = objectMapper.writeValueAsString(object);
-      return (truncate(str, 60) + (uri.toString().isEmpty() ? " at root " : " at " + uri + " ")
-          + "failed " + (schemaPath.toString().isEmpty() ? "" : "against " + schemaPath + " ")
-          + "with \"" + getMessage() + "\"");
+      return (truncate(str, 60)
+          + (uri.toString().isEmpty() ? " at root " : " at " + uri + " ")
+          + "failed "
+          + (schemaPath.toString().isEmpty() ? "" : "against " + schemaPath + " ")
+          + "with \""
+          + getMessage()
+          + "\"");
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(e);
     }

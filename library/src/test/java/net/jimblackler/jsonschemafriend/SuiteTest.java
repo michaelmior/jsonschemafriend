@@ -41,7 +41,8 @@ public class SuiteTest {
   public static final FileSystem FILE_SYSTEM = FileSystems.getDefault();
   private static final boolean WRITE_ALLOWLIST = false;
 
-  private static Collection<DynamicNode> scan(Set<Path> testDirs, Path remotes, URI metaSchema, boolean runFormatTests) {
+  private static Collection<DynamicNode> scan(
+      Set<Path> testDirs, Path remotes, URI metaSchema, boolean runFormatTests) {
     ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     Collection<DynamicNode> allFileTests = new ArrayList<>();
     DefaultPrettyPrinter prettyPrinter = new DefaultPrettyPrinter();
@@ -55,8 +56,8 @@ public class SuiteTest {
     for (Path path : testDirs) {
       Collection<DynamicNode> dirTests = new ArrayList<>();
       try (InputStream inputStream = getResourceAsStream(SuiteTest.class, path.toString());
-           BufferedReader bufferedReader =
-               new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+          BufferedReader bufferedReader =
+              new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
         String resource;
         while ((resource = bufferedReader.readLine()) != null) {
           if (!resource.endsWith(".json")) {
@@ -71,13 +72,14 @@ public class SuiteTest {
           Path allowListFile = allowListFolder.resolve(resource);
 
           InputStream allowListInStream = getResourceAsStream(SuiteTest.class, "/" + allowListFile);
-          Map<String, Object> allowListIn = allowListInStream == null
-              ? new LinkedHashMap<>()
-              : objectReader.readValue(allowListInStream, Map.class);
+          Map<String, Object> allowListIn =
+              allowListInStream == null
+                  ? new LinkedHashMap<>()
+                  : objectReader.readValue(allowListInStream, Map.class);
 
           Map<String, Object> allowListOut = new LinkedHashMap<>();
           try (InputStream inputStream1 =
-                   getResourceAsStream(SuiteTest.class, resourcePath.toString())) {
+              getResourceAsStream(SuiteTest.class, resourcePath.toString())) {
             List<Object> data = (List<Object>) objectMapper.readValue(inputStream1, Object.class);
             for (int idx = 0; idx != data.size(); idx++) {
               Map<String, Object> testSet = (Map<String, Object>) data.get(idx);
@@ -100,60 +102,65 @@ public class SuiteTest {
                 Object data1 = test.get("data");
                 boolean valid = getOrDefault(test, "valid", false);
                 String description = getOrDefault(test, "description", "Data: " + data1);
-                tests.add(dynamicTest(valid ? description : description + "(F)", testSourceUri, () -> {
-                  System.out.println("Schema:");
-                  System.out.println(objectMapper.writeValueAsString(schemaObject));
-                  System.out.println();
+                tests.add(
+                    dynamicTest(
+                        valid ? description : description + "(F)",
+                        testSourceUri,
+                        () -> {
+                          System.out.println("Schema:");
+                          System.out.println(objectMapper.writeValueAsString(schemaObject));
+                          System.out.println();
 
-                  SchemaStore schemaStore = new SchemaStore(urlRewriter, true);
-                  net.jimblackler.jsonschemafriend.Schema schema1 =
-                      schemaStore.loadSchema(schemaObject);
+                          SchemaStore schemaStore = new SchemaStore(urlRewriter, true);
+                          net.jimblackler.jsonschemafriend.Schema schema1 =
+                              schemaStore.loadSchema(schemaObject);
 
-                  System.out.println("Test:");
-                  System.out.println(objectMapper.writeValueAsString(test));
-                  System.out.println();
+                          System.out.println("Test:");
+                          System.out.println(objectMapper.writeValueAsString(test));
+                          System.out.println();
 
-                  List<ValidationError> errors = new ArrayList<>();
-                  validator.validate(schema1, data1, URI.create(""), errors::add);
+                          List<ValidationError> errors = new ArrayList<>();
+                          validator.validate(schema1, data1, URI.create(""), errors::add);
 
-                  System.out.print("Expected to " + (valid ? "pass" : "fail") + " ... ");
-                  if (errors.isEmpty()) {
-                    System.out.println("Passed");
-                  } else {
-                    System.out.println("Failures:");
-                    for (ValidationError error : errors) {
-                      System.out.println(error);
-                    }
-                    System.out.println();
-                  }
+                          System.out.print("Expected to " + (valid ? "pass" : "fail") + " ... ");
+                          if (errors.isEmpty()) {
+                            System.out.println("Passed");
+                          } else {
+                            System.out.println("Failures:");
+                            for (ValidationError error : errors) {
+                              System.out.println(error);
+                            }
+                            System.out.println();
+                          }
 
-                  if (errors.isEmpty() != valid) {
-                    if (WRITE_ALLOWLIST) {
-                      Map<String, Object> testsAllowList =
-                          (Map<String, Object>) allowListOut.get(testsDescription);
-                      if (testsAllowList == null) {
-                        testsAllowList = new LinkedHashMap<>();
-                        allowListOut.put(testsDescription, testsAllowList);
-                      }
+                          if (errors.isEmpty() != valid) {
+                            if (WRITE_ALLOWLIST) {
+                              Map<String, Object> testsAllowList =
+                                  (Map<String, Object>) allowListOut.get(testsDescription);
+                              if (testsAllowList == null) {
+                                testsAllowList = new LinkedHashMap<>();
+                                allowListOut.put(testsDescription, testsAllowList);
+                              }
 
-                      testsAllowList.put(description, true);
+                              testsAllowList.put(description, true);
 
-                      Files.createDirectories(allowListFolder);
-                      try (FileWriter w = new FileWriter(allowListFile.toFile())) {
-                        objectWriter.writeValue(w, allowListOut);
-                      }
-                      fail();
-                    } else {
-                      Map<String, Object> testsAllowListIn =
-                          (Map<String, Object>) allowListIn.get(testsDescription);
-                      if (testsAllowListIn != null && testsAllowListIn.containsKey(description)) {
-                        assumeTrue(false);
-                      } else {
-                        fail();
-                      }
-                    }
-                  }
-                }));
+                              Files.createDirectories(allowListFolder);
+                              try (FileWriter w = new FileWriter(allowListFile.toFile())) {
+                                objectWriter.writeValue(w, allowListOut);
+                              }
+                              fail();
+                            } else {
+                              Map<String, Object> testsAllowListIn =
+                                  (Map<String, Object>) allowListIn.get(testsDescription);
+                              if (testsAllowListIn != null
+                                  && testsAllowListIn.containsKey(description)) {
+                                assumeTrue(false);
+                              } else {
+                                fail();
+                              }
+                            }
+                          }
+                        }));
               }
               nodes.add(dynamicContainer(testsDescription, testSourceUri, tests.stream()));
             }
@@ -170,7 +177,8 @@ public class SuiteTest {
     return allFileTests;
   }
 
-  private static Collection<DynamicNode> test(String set, String metaSchema, boolean runFormatTests) {
+  private static Collection<DynamicNode> test(
+      String set, String metaSchema, boolean runFormatTests) {
     Path suite = FILE_SYSTEM.getPath("/suites").resolve("JSON-Schema-Test-Suite");
     Path tests = suite.resolve("tests").resolve(set);
     Path optional = tests.resolve("optional");

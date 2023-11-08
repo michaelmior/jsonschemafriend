@@ -34,49 +34,55 @@ public class ConvertCatalog {
     Path path0 = FILE_SYSTEM.getPath("/SchemaStore").resolve("src");
     Path schemaPath = path0.resolve("schemas").resolve("json");
     Path testDir = path0.resolve("test");
-    getLines(SuiteTest.class.getResourceAsStream(testDir.toString()), resource -> {
-      Path testSchema = schemaPath.resolve(resource + ".json");
-      InputStream resourceAsStream =
-          ConvertCatalog.class.getResourceAsStream(testSchema.toString());
-      if (resourceAsStream == null) {
-        System.out.println("Couldn't get " + testSchema);
-        return;
-      }
-      try {
-        schemas.put(resource, objectMapper.readValue(resourceAsStream, Object.class));
-      } catch (IOException e) {
-        e.printStackTrace();
-        return;
-      }
+    getLines(
+        SuiteTest.class.getResourceAsStream(testDir.toString()),
+        resource -> {
+          Path testSchema = schemaPath.resolve(resource + ".json");
+          InputStream resourceAsStream =
+              ConvertCatalog.class.getResourceAsStream(testSchema.toString());
+          if (resourceAsStream == null) {
+            System.out.println("Couldn't get " + testSchema);
+            return;
+          }
+          try {
+            schemas.put(resource, objectMapper.readValue(resourceAsStream, Object.class));
+          } catch (IOException e) {
+            e.printStackTrace();
+            return;
+          }
 
-      Path directoryPath = testDir.resolve(resource);
-      getLines(ConvertCatalog.class.getResourceAsStream(directoryPath.toString()), testFileName -> {
-        Path testFile = directoryPath.resolve(testFileName);
-        URL testDataUrl = ConvertCatalog.class.getResource(testFile.toString());
-        if (testDataUrl == null) {
-          return;
-        }
+          Path directoryPath = testDir.resolve(resource);
+          getLines(
+              ConvertCatalog.class.getResourceAsStream(directoryPath.toString()),
+              testFileName -> {
+                Path testFile = directoryPath.resolve(testFileName);
+                URL testDataUrl = ConvertCatalog.class.getResource(testFile.toString());
+                if (testDataUrl == null) {
+                  return;
+                }
 
-        try {
-          Map<String, Object> demo = new LinkedHashMap<>();
-          demo.put("schema", resource);
-          demo.put("data",
-              objectMapper.readValue(
-                  ConvertCatalog.class.getResourceAsStream(testFile.toString()), Object.class));
-          demos.put(testFileName, demo);
-          allDemos.add(testFileName);
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      });
-    });
+                try {
+                  Map<String, Object> demo = new LinkedHashMap<>();
+                  demo.put("schema", resource);
+                  demo.put(
+                      "data",
+                      objectMapper.readValue(
+                          ConvertCatalog.class.getResourceAsStream(testFile.toString()),
+                          Object.class));
+                  demos.put(testFileName, demo);
+                  allDemos.add(testFileName);
+                } catch (IOException e) {
+                  e.printStackTrace();
+                }
+              });
+        });
 
     try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(Paths.get("demos.json")))) {
       writer.print(objectMapper.writeValueAsString(out));
     }
 
-    try (
-        PrintWriter writer = new PrintWriter(Files.newBufferedWriter(Paths.get("allDemos.json")))) {
+    try (PrintWriter writer =
+        new PrintWriter(Files.newBufferedWriter(Paths.get("allDemos.json")))) {
       writer.print(objectMapper.writeValueAsString(allDemos));
     }
   }
