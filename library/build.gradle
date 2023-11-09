@@ -1,6 +1,11 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'application'
+}
+
+application {
+    mainClass = 'library.src.main.java.net.jimblackler.jsonschemafriend.Validator'
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -17,6 +22,19 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 }
 
 afterEvaluate {
+    application {
+        mainClass = 'net.jimblackler.jsonschemafriend.Validator'
+    }
+    jar {
+    manifest {
+        attributes "Main-Class": 'net.jimblackler.jsonschemafriend.Validator'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
     publishing {
         publications {
             release(MavenPublication) {
@@ -54,5 +72,5 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.8.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.8.0'
-    testImplementation 'org.json:json:20210307'
+    implementation 'org.json:json:20210307'
 }

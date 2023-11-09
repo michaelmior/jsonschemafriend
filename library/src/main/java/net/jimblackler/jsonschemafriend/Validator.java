@@ -10,7 +10,9 @@ import static net.jimblackler.jsonschemafriend.Utils.setOf;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -18,6 +20,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -31,6 +36,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
+import org.json.JSONObject;
 
 public class Validator {
   private static final Logger LOG = Logger.getLogger(Validator.class.getName());
@@ -284,18 +290,20 @@ public class Validator {
     if (oneOf != null) {
       List<Schema> passed = new ArrayList<>();
       List<List<ValidationError>> allErrors = new ArrayList<>();
+      Object passedObj = null;
       for (Schema schema1 : oneOf) {
         List<ValidationError> errors = new ArrayList<>();
         List<String> unevaluatedProperties = new ArrayList<>();
         List<Integer> unevaluatedItems = new ArrayList<>();
-        validate(
-            schema1,
-            document,
-            uri,
-            errors::add,
-            unevaluatedProperties::add,
-            unevaluatedItems::add,
-            dynamicAnchors);
+        passedObj =
+            validate(
+                schema1,
+                document,
+                uri,
+                errors::add,
+                unevaluatedProperties::add,
+                unevaluatedItems::add,
+                dynamicAnchors);
         if (errors.isEmpty()) {
           passed.add(schema1);
           unevaluatedProperties.forEach(selfPropertyHandler);
@@ -305,6 +313,8 @@ public class Validator {
       }
       if (passed.size() != 1) {
         error.accept(new OneOfError(uri, document, passed, allErrors, schema));
+      } else {
+        object = passedObj;
       }
     }
 
@@ -344,12 +354,16 @@ public class Validator {
 
     if (object instanceof Number) {
       Number number = (Number) object;
-      if (multipleOf != null
-          && (new BigDecimal(number.toString())
-                  .remainder(new BigDecimal(multipleOf.toString()))
-                  .compareTo(BigDecimal.ZERO)
-              != 0)) {
-        error.accept(new MultipleError(uri, document, schema));
+      BigDecimal numBD = new BigDecimal(number.toString());
+      BigDecimal multBD = new BigDecimal(1);
+
+      if (multipleOf != null) {
+        multBD = new BigDecimal(multipleOf.toString());
+        if (numBD.remainder(multBD).compareTo(BigDecimal.ZERO) != 0) {
+          error.accept(new MultipleError(uri, document, schema));
+        } else {
+          object = numBD.divide(multBD);
+        }
       }
       if (maximum != null
           && (exclusiveMaximumBoolean
@@ -366,10 +380,22 @@ public class Validator {
             ? number.doubleValue() <= minimum.doubleValue()
             : number.doubleValue() < minimum.doubleValue()) {
           error.accept(new MinimumError(uri, document, schema));
+        } else {
+          object =
+              (new BigDecimal(number.toString()))
+                  .subtract(new BigDecimal(minimum.toString()))
+                  .divide(multBD);
         }
       }
-      if (exclusiveMinimum != null && number.doubleValue() <= exclusiveMinimum.doubleValue()) {
-        error.accept(new ExclusiveMinimumError(uri, document, schema));
+      if (exclusiveMinimum != null) {
+        if (number.doubleValue() <= exclusiveMinimum.doubleValue()) {
+          error.accept(new ExclusiveMinimumError(uri, document, schema));
+        } else {
+          object =
+              (new BigDecimal(number.toString()))
+                  .subtract(new BigDecimal(exclusiveMinimum.toString()))
+                  .divide(multBD);
+        }
       }
       Set<String> okTypes = new HashSet<>();
       okTypes.add("number");
@@ -426,6 +452,9 @@ public class Validator {
                 string, format, schema.getMetaSchema(), regExPatternSupplier, this.validateFormats);
         if (message != null) {
           error.accept(new FormatError(uri, document, schema, message));
+        } else if (format.equals("date-time")) {
+          Instant instant = Instant.parse(string);
+          object = instant.getEpochSecond();
         }
       }
       String stringToValidate = string;
@@ -466,18 +495,20 @@ public class Validator {
       typeCheck(schema, document, uri, setOf("boolean"), disallow, errorConsumer);
     } else if (object instanceof List) {
       typeCheck(schema, document, uri, setOf("array"), disallow, errorConsumer);
-      Collection<Object> jsonArray = (Collection<Object>) object;
+      List<Object> jsonArray = (List<Object>) object;
       List<Schema> prefixItems = schema.getPrefixItems();
       int itemStart = 0;
       if (prefixItems != null) {
         itemStart = prefixItems.size();
         for (int idx = 0; idx != Math.min(prefixItems.size(), jsonArray.size()); idx++) {
-          validate(
-              prefixItems.get(idx),
-              document,
-              PathUtils.append(uri, String.valueOf(idx)),
-              errorConsumer,
-              dynamicAnchors);
+          Object arrItem =
+              validate(
+                  prefixItems.get(idx),
+                  document,
+                  PathUtils.append(uri, String.valueOf(idx)),
+                  errorConsumer,
+                  dynamicAnchors);
+          jsonArray.set(idx, arrItem);
           selfItemHandler.accept(idx);
         }
       } else {
@@ -486,22 +517,26 @@ public class Validator {
           Schema additionalItems = schema.getAdditionalItems();
           if (jsonArray.size() > itemsTuple.size() && additionalItems != null) {
             for (int idx = itemsTuple.size(); idx != jsonArray.size(); idx++) {
-              validate(
-                  additionalItems,
-                  document,
-                  PathUtils.append(uri, String.valueOf(idx)),
-                  errorConsumer,
-                  dynamicAnchors);
+              Object arrItem =
+                  validate(
+                      additionalItems,
+                      document,
+                      PathUtils.append(uri, String.valueOf(idx)),
+                      errorConsumer,
+                      dynamicAnchors);
+              jsonArray.set(idx, arrItem);
               selfItemHandler.accept(idx);
             }
           }
           for (int idx = 0; idx != Math.min(itemsTuple.size(), jsonArray.size()); idx++) {
-            validate(
-                itemsTuple.get(idx),
-                document,
-                PathUtils.append(uri, String.valueOf(idx)),
-                errorConsumer,
-                dynamicAnchors);
+            Object arrItem =
+                validate(
+                    itemsTuple.get(idx),
+                    document,
+                    PathUtils.append(uri, String.valueOf(idx)),
+                    errorConsumer,
+                    dynamicAnchors);
+            jsonArray.set(idx, arrItem);
             selfItemHandler.accept(idx);
           }
         }
@@ -551,12 +586,14 @@ public class Validator {
           if (evaluatedItems.contains(idx)) {
             continue;
           }
-          validate(
-              unevaluatedItems,
-              document,
-              PathUtils.append(uri, String.valueOf(idx)),
-              errorConsumer,
-              dynamicAnchors);
+          Object arrItem =
+              validate(
+                  unevaluatedItems,
+                  document,
+                  PathUtils.append(uri, String.valueOf(idx)),
+                  errorConsumer,
+                  dynamicAnchors);
+          jsonArray.set(idx, arrItem);
           selfItemHandler.accept(idx);
         }
       }
@@ -615,12 +652,14 @@ public class Validator {
       Collection<Schema> patternPropertiesSchema = schema.getPatternPropertiesSchema();
       for (String property : jsonObject.keySet()) {
         if (_properties.containsKey(property)) {
-          validate(
-              _properties.get(property),
-              document,
-              PathUtils.append(uri, property),
-              errorConsumer,
-              dynamicAnchors);
+          Object objItem =
+              validate(
+                  _properties.get(property),
+                  document,
+                  PathUtils.append(uri, property),
+                  errorConsumer,
+                  dynamicAnchors);
+          jsonObject.put(property, objItem);
           remainingProperties.remove(property);
           selfPropertyHandler.accept(property);
         }
@@ -632,12 +671,14 @@ public class Validator {
           Schema schema1 = it1.next();
           try {
             if (regExPatternSupplier.newPattern(pattern1).matches(property)) {
-              validate(
-                  schema1,
-                  document,
-                  PathUtils.append(uri, property),
-                  errorConsumer,
-                  dynamicAnchors);
+              Object objItem =
+                  validate(
+                      schema1,
+                      document,
+                      PathUtils.append(uri, property),
+                      errorConsumer,
+                      dynamicAnchors);
+              jsonObject.put(property, objItem);
               remainingProperties.remove(property);
               selfPropertyHandler.accept(property);
             }
@@ -688,12 +729,14 @@ public class Validator {
       Schema additionalProperties = schema.getAdditionalProperties();
       if (additionalProperties != null) {
         for (String property : remainingProperties) {
-          validate(
-              additionalProperties,
-              document,
-              PathUtils.append(uri, property),
-              errorConsumer,
-              dynamicAnchors);
+          Object objItem =
+              validate(
+                  additionalProperties,
+                  document,
+                  PathUtils.append(uri, property),
+                  errorConsumer,
+                  dynamicAnchors);
+          jsonObject.put(property, objItem);
           selfPropertyHandler.accept(property);
         }
       }
@@ -703,12 +746,14 @@ public class Validator {
         Collection<String> remainingProperties2 = new HashSet<>(jsonObject.keySet());
         remainingProperties2.removeAll(evaluatedProperties);
         for (String property : remainingProperties2) {
-          validate(
-              unevaluatedProperties,
-              document,
-              PathUtils.append(uri, property),
-              errorConsumer,
-              dynamicAnchors);
+          Object objItem =
+              validate(
+                  unevaluatedProperties,
+                  document,
+                  PathUtils.append(uri, property),
+                  errorConsumer,
+                  dynamicAnchors);
+          jsonObject.put(property, objItem);
           selfPropertyHandler.accept(property);
         }
       }
@@ -745,14 +790,18 @@ public class Validator {
     if (enums != null) {
       boolean matchedOne = false;
       Object o = makeComparable(object);
+      int i = 0;
       for (Object value : enums) {
         if (o.equals(makeComparable(value))) {
           matchedOne = true;
           break;
         }
+        i += 1;
       }
       if (!matchedOne) {
         error.accept(new EnumError(uri, document, schema));
+      } else {
+        object = i;
       }
     }
 
@@ -807,79 +856,87 @@ public class Validator {
     errorConsumer.accept(new TypeError(path, document, explicitTypes, types, schema));
   }
 
-  public void validate(Schema schema, File file) throws ValidationException, IOException {
+  public Object validate(Schema schema, File file) throws ValidationException, IOException {
     Collection<ValidationError> errors = new ArrayList<>();
-    validate(schema, file, errors::add);
+    Object ret = validate(schema, file, errors::add);
     if (!errors.isEmpty()) {
       throw new ListValidationException(errors);
     }
+    return ret;
   }
 
-  public void validate(Schema schema, URI uri) throws ValidationException, IOException {
+  public Object validate(Schema schema, URI uri) throws ValidationException, IOException {
     Collection<ValidationError> errors = new ArrayList<>();
-    validate(schema, uri, errors::add);
+    Object ret = validate(schema, uri, errors::add);
     if (!errors.isEmpty()) {
       throw new ListValidationException(errors);
     }
+    return ret;
   }
 
-  public void validate(Schema schema, URL url) throws ValidationException, IOException {
+  public Object validate(Schema schema, URL url) throws ValidationException, IOException {
     Collection<ValidationError> errors = new ArrayList<>();
-    validate(schema, url, errors::add);
+    Object ret = validate(schema, url, errors::add);
     if (!errors.isEmpty()) {
       throw new ListValidationException(errors);
     }
+    return ret;
   }
 
-  public void validate(Schema schema, Object document, URI uri) throws ValidationException {
+  public Object validate(Schema schema, Object document, URI uri) throws ValidationException {
     Collection<ValidationError> errors = new ArrayList<>();
-    validate(schema, document, uri, errors::add);
+    Object ret = validate(schema, document, uri, errors::add);
     if (!errors.isEmpty()) {
       throw new ListValidationException(errors);
     }
+    return ret;
   }
 
-  public void validate(Schema schema, Object document) throws ValidationException {
+  public Object validate(Schema schema, Object document) throws ValidationException {
     Collection<ValidationError> errors = new ArrayList<>();
-    validate(schema, document, errors::add);
+    Object ret = validate(schema, document, errors::add);
     if (!errors.isEmpty()) {
       throw new ListValidationException(errors);
     }
+    return ret;
   }
 
-  public void validateJson(Schema schema, String string) throws ValidationException {
+  public Object validateJson(Schema schema, String string) throws ValidationException {
     try {
-      validate(schema, new ObjectMapper().readValue(string, Object.class));
+      if (string == null) {
+        string = "null";
+      }
+      return validate(schema, new ObjectMapper().readValue(string, Object.class));
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  public void validate(Schema schema, InputStream inputStream)
+  public Object validate(Schema schema, InputStream inputStream)
       throws ValidationException, IOException {
-    validate(schema, new ObjectMapper().readValue(inputStream, Object.class));
+    return validate(schema, new ObjectMapper().readValue(inputStream, Object.class));
   }
 
-  public void validate(Schema schema, URL url, Consumer<ValidationError> errorConsumer)
+  public Object validate(Schema schema, URL url, Consumer<ValidationError> errorConsumer)
       throws IOException {
-    validate(
+    return validate(
         schema,
         new ObjectMapper().readValue(UrlUtils.readFromStream(url), Object.class),
         errorConsumer);
   }
 
-  public void validate(Schema schema, URI uri, Consumer<ValidationError> errorConsumer)
+  public Object validate(Schema schema, URI uri, Consumer<ValidationError> errorConsumer)
       throws IOException {
-    validate(schema, uri.toURL(), errorConsumer);
+    return validate(schema, uri.toURL(), errorConsumer);
   }
 
-  public void validate(Schema schema, File file, Consumer<ValidationError> errorConsumer)
+  public Object validate(Schema schema, File file, Consumer<ValidationError> errorConsumer)
       throws IOException {
-    validate(schema, file.toURI(), errorConsumer);
+    return validate(schema, file.toURI(), errorConsumer);
   }
 
-  public void validate(Schema schema, Object document, Consumer<ValidationError> errorConsumer) {
-    validate(schema, document, URI.create(""), errorConsumer);
+  public Object validate(Schema schema, Object document, Consumer<ValidationError> errorConsumer) {
+    return validate(schema, document, URI.create(""), errorConsumer);
   }
 
   public Map<String, Object> validateWithOutput(Schema schema, Object document)
@@ -908,5 +965,28 @@ public class Validator {
           ((Collection<Object>) output.get("errors")).add(error);
         });
     return output;
+  }
+
+  public static void main(String[] args) {
+    try {
+      String schema = new String(Files.readAllBytes(Paths.get(args[1])));
+      SchemaStore schemaStore = new SchemaStore();
+      Schema testSchema = schemaStore.loadSchemaJson(schema);
+      Validator validator = new Validator();
+      BufferedReader reader = new BufferedReader(new FileReader(args[1]));
+      String line = reader.readLine();
+      while (line != null) {
+        try {
+          Map out = (Map) validator.validateJson(testSchema, line);
+          JSONObject jo = new JSONObject(out);
+          System.out.println(jo.toString());
+          line = reader.readLine();
+        } catch (SchemaException e) {
+          System.err.println("ERROR");
+        }
+      }
+    } catch (SchemaException | IOException e) {
+      System.err.println(e);
+    }
   }
 }
